@@ -57,49 +57,48 @@ public class FileAnalysisCache extends AbstractAnalysisCache {
      */
     private void loadFromFile(final File cacheFile) {
         try (TimedOperation ignored = TimeTracker.startOperation(TimedOperationCategory.ANALYSIS_CACHE, "load")) {
-            if (cacheExists()) {
-                try (
-                    DataInputStream inputStream = new DataInputStream(
-                        new BufferedInputStream(Files.newInputStream(cacheFile.toPath())));
-                ) {
-                    final String cacheVersion = inputStream.readUTF();
-
-                    if (PMDVersion.VERSION.equals(cacheVersion)) {
-                        // Cache seems valid, load the rest
-
-                        // Get checksums
-                        rulesetChecksum = inputStream.readLong();
-                        auxClassPathChecksum = inputStream.readLong();
-                        executionClassPathChecksum = inputStream.readLong();
-
-                        // Cached results
-                        while (inputStream.available() > 0) {
-                            final String filePathId = inputStream.readUTF();
-                            final long checksum = inputStream.readLong();
-
-                            final int countViolations = inputStream.readInt();
-                            final List<RuleViolation> violations = new ArrayList<>(countViolations);
-                            for (int i = 0; i < countViolations; i++) {
-                                violations.add(CachedRuleViolation.loadFromStream(inputStream, filePathId, ruleMapper));
-                            }
-
-                            fileResultsCache.put(filePathId, new AnalysisResult(checksum, violations));
-                        }
-
-                        LOG.debug("Analysis cache loaded from {}", cacheFile);
-                    } else {
-                        LOG.debug("Analysis cache invalidated, PMD version changed.");
-                    }
-                } catch (final EOFException e) {
-                    LOG.warn("Cache file {} is malformed, will not be used for current analysis", cacheFile.getPath());
-                } catch (final IOException e) {
-                    LOG.error("Could not load analysis cache from file: {}", e.getMessage());
+            if (!cacheExists()) {
+                if (cacheFile.isDirectory()) {
+                    LOG.error("The configured cache location must be the path to a file, but is a directory.");
                 }
-            } else if (cacheFile.isDirectory()) {
-                LOG.error("The configured cache location must be the path to a file, but is a directory.");
+                return;
+            }
+    
+            try (DataInputStream inputStream = new DataInputStream(new BufferedInputStream(Files.newInputStream(cacheFile.toPath())))) {
+                final String cacheVersion = inputStream.readUTF();
+                if (!PMDVersion.VERSION.equals(cacheVersion)) {
+                    LOG.debug("Analysis cache invalidated, PMD version changed.");
+                    return;
+                }
+    
+                // Get checksums
+                rulesetChecksum = inputStream.readLong();
+                auxClassPathChecksum = inputStream.readLong();
+                executionClassPathChecksum = inputStream.readLong();
+    
+                // Cached results
+                while (inputStream.available() > 0) {
+                    final String filePathId = inputStream.readUTF();
+                    final long checksum = inputStream.readLong();
+    
+                    final int countViolations = inputStream.readInt();
+                    final List<RuleViolation> violations = new ArrayList<>(countViolations);
+                    for (int i = 0; i < countViolations; i++) {
+                        violations.add(CachedRuleViolation.loadFromStream(inputStream, filePathId, ruleMapper));
+                    }
+    
+                    fileResultsCache.put(filePathId, new AnalysisResult(checksum, violations));
+                }
+    
+                LOG.debug("Analysis cache loaded from {}", cacheFile);
+            } catch (final EOFException e) {
+                LOG.warn("Cache file {} is malformed, will not be used for current analysis", cacheFile.getPath());
+            } catch (final IOException e) {
+                LOG.error("Could not load analysis cache from file: {}", e.getMessage());
             }
         }
     }
+    
 
     @Override
     public void persist() {
