@@ -51,6 +51,7 @@ import net.sourceforge.pmd.util.AssertionUtil;
 import net.sourceforge.pmd.util.StringUtil;
 import net.sourceforge.pmd.util.log.MessageReporter;
 
+
 /**
  * Main programmatic API of PMD. Create and configure a {@link PMDConfiguration},
  * then use {@link #create(PMDConfiguration)} to obtain an instance.
@@ -129,7 +130,7 @@ public final class PmdAnalysis implements AutoCloseable {
      */
     public static PmdAnalysis create(PMDConfiguration config) {
         PmdAnalysis pmd = new PmdAnalysis(config);
-
+        
         // note: do not filter files by language
         // they could be ignored later. The problem is if you call
         // addRuleSet later, then you could be enabling new languages
@@ -141,11 +142,12 @@ public final class PmdAnalysis implements AutoCloseable {
             pmd.addRenderer(renderer);
         }
 
-        if (!config.getRuleSetPaths().isEmpty()) {
-            final RuleSetLoader ruleSetLoader = pmd.newRuleSetLoader();
-            final List<RuleSet> ruleSets = ruleSetLoader.loadRuleSetsWithoutException(config.getRuleSetPaths());
-            pmd.addRuleSets(ruleSets);
-        }
+        List<String> ruleSetPaths = config.getRuleSetPaths();
+if (!ruleSetPaths.isEmpty()) {
+    final List<RuleSet> ruleSets = config.getRuleSets(ruleSetPaths);
+    pmd.addRuleSets(ruleSets);
+}
+
 
         for (Language language : config.getLanguageRegistry()) {
             LanguagePropertyBundle props = config.getLanguageProperties(language);
