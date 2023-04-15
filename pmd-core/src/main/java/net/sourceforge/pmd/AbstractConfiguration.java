@@ -13,7 +13,7 @@ import java.nio.charset.Charset;
  */
 public abstract class AbstractConfiguration {
 
-    private Charset sourceEncoding = Charset.forName(System.getProperty("file.encoding"));
+    private Charset sourceEncoding = Charset.defaultCharset();
     private boolean debug;
 
     /**
@@ -37,9 +37,11 @@ public abstract class AbstractConfiguration {
      *
      * @param sourceEncoding
      *            The character encoding.
+     * @return This configuration instance for method chaining.
      */
-    public void setSourceEncoding(String sourceEncoding) {
+    public AbstractConfiguration withSourceEncoding(String sourceEncoding) {
         this.sourceEncoding = Charset.forName(sourceEncoding);
+        return this;
     }
 
     /**
@@ -58,9 +60,12 @@ public abstract class AbstractConfiguration {
      *
      * @param debug
      *            The debug indicator to set.
+     * @return This configuration instance for method chaining.
      * @see #isDebug()
      */
-    public void setDebug(boolean debug) {
+    public AbstractConfiguration withDebug(boolean debug) {
         this.debug = debug;
+        return this;
     }
 }
+
