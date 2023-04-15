@@ -257,63 +257,74 @@ public class RuleSetWriter {
 
     @SuppressWarnings("PMD.CompareObjectsWithEquals")
     private Element createPropertiesElement(List<PropertyDescriptor<?>> propertyDescriptors,
-            Map<PropertyDescriptor<?>, Object> propertiesByPropertyDescriptor) {
+    Map<PropertyDescriptor<?>, Object> propertiesByPropertyDescriptor) {
 
-        Element propertiesElement = null;
-        if (propertyDescriptors != null) {
+Element propertiesElement = null;
+if (propertyDescriptors != null) {
+    propertiesElement = createDefinitionElements(propertyDescriptors);
+    createValueElements(propertiesByPropertyDescriptor, propertyDescriptors, propertiesElement);
+}
 
-            for (PropertyDescriptor<?> propertyDescriptor : propertyDescriptors) {
-                // For each provided PropertyDescriptor
+if (propertiesByPropertyDescriptor != null) {
+    createImplicitValueElements(propertiesByPropertyDescriptor, propertyDescriptors, propertiesElement);
+}
 
-                if (propertyDescriptor.isDefinedExternally()) {
-                    // Any externally defined property needs to go out as a definition.
-                    if (propertiesElement == null) {
-                        propertiesElement = createPropertiesElement();
-                    }
+return propertiesElement;
+}
 
-                    Element propertyElement = createPropertyDefinitionElementBR(propertyDescriptor);
-                    propertiesElement.appendChild(propertyElement);
-                } else {
-                    if (propertiesByPropertyDescriptor != null) {
-                        // Otherwise, any property which has a value different than the default needs to go out as a value.
-                        Object defaultValue = propertyDescriptor.defaultValue();
-                        Object value = propertiesByPropertyDescriptor.get(propertyDescriptor);
-                        if (value != defaultValue && (value == null || !value.equals(defaultValue))) {
-                            if (propertiesElement == null) {
-                                propertiesElement = createPropertiesElement();
-                            }
+private Element createDefinitionElements(List<PropertyDescriptor<?>> propertyDescriptors) {
+Element propertiesElement = null;
 
-                            Element propertyElement = createPropertyValueElement(propertyDescriptor, value);
-                            propertiesElement.appendChild(propertyElement);
-                        }
-                    }
-                }
-            }
+for (PropertyDescriptor<?> propertyDescriptor : propertyDescriptors) {
+    if (propertyDescriptor.isDefinedExternally()) {
+        if (propertiesElement == null) {
+            propertiesElement = createPropertiesElement();
         }
 
-        if (propertiesByPropertyDescriptor != null) {
-            // Then, for each PropertyDescriptor not explicitly provided
-            for (Map.Entry<PropertyDescriptor<?>, Object> entry : propertiesByPropertyDescriptor.entrySet()) {
-                // If not explicitly given...
-                PropertyDescriptor<?> propertyDescriptor = entry.getKey();
-                if (!propertyDescriptors.contains(propertyDescriptor)) {
-                    // Otherwise, any property which has a value different than
-                    // the
-                    // default needs to go out as a value.
-                    Object defaultValue = propertyDescriptor.defaultValue();
-                    Object value = entry.getValue();
-                    if (value != defaultValue && (value == null || !value.equals(defaultValue))) {
-                        if (propertiesElement == null) {
-                            propertiesElement = createPropertiesElement();
-                        }
-                        Element propertyElement = createPropertyValueElement(propertyDescriptor, value);
-                        propertiesElement.appendChild(propertyElement);
-                    }
-                }
-            }
-        }
-        return propertiesElement;
+        Element propertyElement = createPropertyDefinitionElementBR(propertyDescriptor);
+        propertiesElement.appendChild(propertyElement);
     }
+}
+
+return propertiesElement;
+}
+
+private void createValueElements(Map<PropertyDescriptor<?>, Object> propertiesByPropertyDescriptor,
+    List<PropertyDescriptor<?>> propertyDescriptors, Element propertiesElement) {
+
+if (propertiesByPropertyDescriptor != null) {
+    for (PropertyDescriptor<?> propertyDescriptor : propertyDescriptors) {
+        if (!propertyDescriptor.isDefinedExternally()) {
+            Object defaultValue = propertyDescriptor.defaultValue();
+            Object value = propertiesByPropertyDescriptor.get(propertyDescriptor);
+            if (value != defaultValue && (value == null || !value.equals(defaultValue))) {
+                Element propertyElement = createPropertyValueElement(propertyDescriptor, value);
+                propertiesElement.appendChild(propertyElement);
+            }
+        }
+    }
+}
+}
+
+private void createImplicitValueElements(Map<PropertyDescriptor<?>, Object> propertiesByPropertyDescriptor,
+    List<PropertyDescriptor<?>> propertyDescriptors, Element propertiesElement) {
+
+for (Map.Entry<PropertyDescriptor<?>, Object> entry : propertiesByPropertyDescriptor.entrySet()) {
+    PropertyDescriptor<?> propertyDescriptor = entry.getKey();
+    if (!propertyDescriptors.contains(propertyDescriptor)) {
+        Object defaultValue = propertyDescriptor.defaultValue();
+        Object value = entry.getValue();
+        if (value != defaultValue && (value == null || !value.equals(defaultValue))) {
+            if (propertiesElement == null) {
+                propertiesElement = createPropertiesElement();
+            }
+            Element propertyElement = createPropertyValueElement(propertyDescriptor, value);
+            propertiesElement.appendChild(propertyElement);
+        }
+    }
+}
+}
+
 
     private Element createPropertyValueElement(PropertyDescriptor propertyDescriptor, Object value) {
         Element propertyElement = document.createElementNS(RULESET_2_0_0_NS_URI, "property");
