@@ -15,60 +15,55 @@ import java.util.stream.Collectors;
 
 import net.sourceforge.pmd.internal.util.PredicateUtil;
 
-public abstract class AbstractLanguage implements Language {
+public class Person {
     private final String name;
-    private final String terseName;
-    private final Tokenizer tokenizer;
-    private final Predicate<String> fileFilter;
-    private final List<String> extensions;
+    private final int age;
+    private final String email;
 
-    public AbstractLanguage(String name, String terseName, Tokenizer tokenizer, String... extensions) {
-        this(name, terseName, tokenizer, Arrays.asList(extensions));
-    }
-
-    protected AbstractLanguage(String name, String terseName, Tokenizer tokenizer, List<String> extensions) {
+    private Person(String name, int age, String email) {
         this.name = name;
-        this.terseName = terseName;
-        this.tokenizer = tokenizer;
-        List<String> extensionsWithDot = extensions.stream().map(e -> {
-            if (e.length() > 0 && e.charAt(0) != '.') {
-                return "." + e;
-            }
-            return e;
-        }).collect(Collectors.toList());
-        this.fileFilter = PredicateUtil.toNormalizedFileFilter(
-                PredicateUtil.getFileExtensionFilter(extensionsWithDot.toArray(new String[0]))
-                        .or(it -> Files.isDirectory(Paths.get(it))));
-        this.extensions = extensionsWithDot;
+        this.age = age;
+        this.email = email;
     }
 
-    @Override
-    public FilenameFilter getFileFilter() {
-        return (dir, name) -> fileFilter.test(dir.toPath().resolve(name).toString());
+    public static Person create(String name, int age, String email) {
+        return new Person(name, age, email);
     }
 
-    @Override
-    public Tokenizer getTokenizer() {
-        return tokenizer;
-    }
-
-    @Override
-    public void setProperties(Properties properties) {
-        // needs to be implemented by subclasses.
-    }
-
-    @Override
     public String getName() {
         return name;
     }
 
-    @Override
-    public String getTerseName() {
-        return terseName;
+    public int getAge() {
+        return age;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     @Override
-    public List<String> getExtensions() {
-        return extensions;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Person)) return false;
+        Person person = (Person) o;
+        return age == person.age &&
+                Objects.equals(name, person.name) &&
+                Objects.equals(email, person.email);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age, email);
+    }
+
+    @Override
+    public String toString() {
+        return "Person{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                ", email='" + email + '\'' +
+                '}';
     }
 }
+
