@@ -417,47 +417,52 @@ public final class PmdAnalysis implements AutoCloseable {
     }
 
     private Set<Language> getApplicableLanguages(boolean quiet) {
-        Set<Language> languages = new HashSet<>();
-        LanguageVersionDiscoverer discoverer = configuration.getLanguageVersionDiscoverer();
+    Set<Language> languages = new HashSet<>();
+    LanguageVersionDiscoverer discoverer = configuration.getLanguageVersionDiscoverer();
 
-        for (RuleSet ruleSet : ruleSets) {
-            for (Rule rule : ruleSet.getRules()) {
-                Language ruleLanguage = rule.getLanguage();
-                Objects.requireNonNull(ruleLanguage, "Rule has no language " + rule);
-                if (!languages.contains(ruleLanguage)) {
-                    LanguageVersion version = discoverer.getDefaultLanguageVersion(ruleLanguage);
-                    if (RuleSet.applies(rule, version)) {
-                        configuration.checkLanguageIsRegistered(ruleLanguage);
-                        languages.add(ruleLanguage);
-                        if (!quiet) {
-                            LOG.trace("Using {} version ''{}''", version.getLanguage().getName(), version.getTerseName());
-                        }
+    for (RuleSet ruleSet : ruleSets) {
+        for (Rule rule : ruleSet.getRules()) {
+            Language ruleLanguage = rule.getLanguage();
+            Objects.requireNonNull(ruleLanguage, "Rule has no language " + rule);
+            if (!languages.contains(ruleLanguage)) {
+                LanguageVersion version = discoverer.getDefaultLanguageVersion(ruleLanguage);
+                if (RuleSet.applies(rule, version)) {
+                    configuration.checkLanguageIsRegistered(ruleLanguage);
+                    languages.add(ruleLanguage);
+                    if (!quiet) {
+                        LOG.trace("Using {} version ''{}''", version.getLanguage().getName(), version.getTerseName());
                     }
                 }
             }
         }
-
-        // collect all dependencies, they shouldn't be filtered out
-        LanguageRegistry reg = configuration.getLanguageRegistry();
-        boolean changed;
-        do {
-            changed = false;
-            for (Language lang : new HashSet<>(languages)) {
-                for (String depId : lang.getDependencies()) {
-                    Language depLang = reg.getLanguageById(depId);
-                    if (depLang == null) {
-                        // todo maybe report all then throw
-                        throw new IllegalStateException(
-                            "Language " + lang.getId() + " has unsatisfied dependencies: "
-                                + depId + " is not found in " + reg
-                        );
-                    }
-                    changed |= languages.add(depLang);
-                }
-            }
-        } while (changed);
-        return languages;
     }
+
+    addDependencies(languages);
+
+    return languages;
+}
+
+private void addDependencies(Set<Language> languages) {
+    LanguageRegistry reg = configuration.getLanguageRegistry();
+    boolean changed;
+    do {
+        changed = false;
+        for (Language lang : new HashSet<>(languages)) {
+            for (String depId : lang.getDependencies()) {
+                Language depLang = reg.getLanguageById(depId);
+                if (depLang == null) {
+                    // todo maybe report all then throw
+                    throw new IllegalStateException(
+                            "Language " + lang.getId() + " has unsatisfied dependencies: "
+                                    + depId + " is not found in " + reg
+                    );
+                }
+                changed |= languages.add(depLang);
+            }
+        }
+    } while (changed);
+}
+
 
     /**
      * Remove and return the misconfigured rules from the rulesets and log them
